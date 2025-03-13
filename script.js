@@ -107,6 +107,7 @@ const showCurrentLocationMarker = async (map) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
         const marker = L.marker([lat, lon]).addTo(map);
+        marker.bindPopup('Вы находитесь где-то здесь');
     }
 }
 document.addEventListener('DOMContentLoaded', async () => {
