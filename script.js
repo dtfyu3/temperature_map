@@ -144,13 +144,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
     }
-    await showCurrentLocationMarker();
     await geojson
         .then((geojson) => {
             L.geoJson(geojson, {
                 onEachFeature: onEachFeature
             }).addTo(map);
-            // showCurrentLocationMarker(map);
+            showCurrentLocationMarker(map);
             removeSpinner();
             lowerOrRiseMap(mapZIndex);
         }
