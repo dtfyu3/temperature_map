@@ -1,24 +1,13 @@
 const getLocalizedNames = async () => {
-    const response = await fetch('country.json')
+    const response = await fetch('data/country.json')
     return response.json();
 }
 const localizeTiles = async () => {
-    // let geojson;
-    // try {
-    //     geojson = await fetch('localized.geojson')
-    // }
-    // catch {
-    //     const localizedNames = await getLocalizedNames();
-    //     geojson = await getGeoJson()
-    //     geojson.features.forEach(feature => {
-    //         feature.properties.ADMIN = localizedNames[feature.properties.ISO_A2];
-    //     });
-    // }
-    const geojson = await fetch('localized.geojson').then(response => response.json());
+    const geojson = await fetch('data/localized.geojson').then(response => response.json());
     return await geojson
 }
 const getGeoJson = async () => {
-    const response = await fetch('countries.geojson');
+    const response = await fetch('data/countries.geojson');
     return await response.json();
 }
 const geojson = localizeTiles();
@@ -35,24 +24,13 @@ function removeSpinner() {
     if (document.getElementById('loading-spinner')) document.getElementById('loading-spinner').remove();
 }
 
-// localizeTiles().then(data => {
-// const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-// const url = URL.createObjectURL(blob);
-// const a = document.createElement('a');
-// a.href = url;
-// a.download = 'countries.geojson';
-// document.body.appendChild(a);
-// a.click();
-// document.body.removeChild(a);
-// URL.revokeObjectURL(url);
-// });
 const lowerOrRiseMap = (mapZIndex) => {
     const map = document.getElementById('map');
     mapZIndex ? map.style.zIndex = mapZIndex : map.style.zIndex = -1;
 }
 const temperaureData = {};
 const getCsv = async () => {
-    const response = await fetch('data.csv');
+    const response = await fetch('data/data.csv');
     return await response.text();
 }
 const csv = getCsv().then(resp => {
