@@ -5,7 +5,7 @@ const getLocalizedNames = async () => {
 const localizeTiles = async () => {
     let geojson;
     try {
-        geojson = await fetch('data/localized.geojson').then(response => response.json());
+        geojson = await fetch('data/localized_with_temps.geojson').then(response => response.json());
     }
     catch {
         const localizedNames = await getLocalizedNames();
@@ -131,7 +131,25 @@ function downloadFile(data, fileName) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+function countriesStyle(properties) {
+    const fillColor = getTemperatureColor(properties.temp);
+    return {
+        fillColor: fillColor,
+        weight: 1,
+        opacity: 1,
+        color: 'gray',
+        fillOpacity: 0.7,
+        fill: true
+    }
+}
+
+
+
 document.addEventListener('DOMContentLoaded', async () => {
+    L.DomEvent.fakeStop = function () {
+        return true;
+    }
+
     createSpinner(document.getElementById('map-container'));
     const mapZIndex = document.getElementById('map').style.zIndex || 2;
     lowerOrRiseMap();
@@ -141,40 +159,53 @@ document.addEventListener('DOMContentLoaded', async () => {
             [-90, -180],
             [90, 180]
         ],
-        minZoom: 3,
+        minZoom: mobileCheck() ? 1 : 3,
         maxBoundsViscosity: 1.0
-    }).setView([20, 0], 2);
-    // L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    //     attribution: '&copy; <a href="https://www.arcgis.com/">Esri</a>',
-    //     maxZoom: 16
-    // }).addTo(map);
-    const getMeanTemp = (temps) => {
-        return (Object.values(temps).reduce((accum, current) => accum + parseFloat(current), 0) / Object.values(temps).length).toFixed(2);
-    }
-    const onEachFeature = (feature, layer) => {
-        if (temperaureData[feature.properties.ISO_A3]) {
-            feature.properties.temp = getMeanTemp(temperaureData[feature.properties.ISO_A3]);
-            layer.bindPopup(`${feature.properties.ADMIN}: ${feature.properties.temp}°C`);
+    }).setView([20, 0], mobileCheck() ? 1 : 3);
+    const container = map.createPane('stack-container');
+    const myEventForwarder = new L.eventForwarder({
+        // ref to leaflet map
+        map: map,
+        // events to forward
+        events: {
+            click: true,
+            mousemove: true
+        },
+        // throttle options for mousemove events (same as underscore.js)
+        throttleMs: 100,
+        throttleOptions: {
+            leading: true,
+            trailing: false
         }
-        else layer.bindPopup(feature.properties.ADMIN);
-        layer.setStyle({
-            fillColor: getTemperatureColor(feature.properties.temp),
-            weight: 1,
-            opacity: 1,
-            color: 'white',
-            fillOpacity: 0.7
-        });
+    });
 
-    }
-    await geojson
-        .then((geojson) => {
-            L.geoJson(geojson, {
-                onEachFeature: onEachFeature
-            }).addTo(map);
-            showCurrentLocationMarker(map);
-            removeSpinner();
-            lowerOrRiseMap(mapZIndex);
+    myEventForwarder.enable();
+    const vectorTiles = L.vectorGrid.protobuf(
+        'http://localhost:3000/tiles/data/localized_with_temps/{z}/{x}/{y}.pbf', {
+        rendererFactory: L.canvas.tile,
+        interactive: true,
+        attribution: '© My Data',
+        vectorTileLayerStyles: {
+            countries: properties => {
+                const styles = countriesStyle(properties);
+                return styles;
+            }
         }
-        );
-
+    }
+    ).addTo(map);
+    vectorTiles.on('click', function (e) {
+        if (e.layer && e.layer.properties) {
+            const countryName = e.layer.properties.ADMIN;
+            const temp = e.layer.properties.temp;
+            if (countryName && temp) {
+                L.popup()
+                    .setLatLng(e.latlng)
+                    .setContent(`<b>${countryName}</b><br>Температура: ${temp}°C`)
+                    .openOn(map);
+            }
+        }
+    });
+    showCurrentLocationMarker(map);
+    removeSpinner();
+    lowerOrRiseMap(mapZIndex);
 })
