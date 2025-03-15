@@ -3,7 +3,17 @@ const getLocalizedNames = async () => {
     return response.json();
 }
 const localizeTiles = async () => {
-    const geojson = await fetch('data/localized.geojson').then(response => response.json());
+    let geojson;
+    try {
+        geojson = await fetch('data/localized.geojson').then(response => response.json());
+    }
+    catch {
+        const localizedNames = await getLocalizedNames();
+        geojson = await getGeoJson();
+        geojson.features.forEach(feature => {
+            feature.properties.ADMIN = localizedNames[feature.properties.ISO_A2];
+        });
+    }
     return await geojson
 }
 const getGeoJson = async () => {
@@ -110,6 +120,17 @@ const showCurrentLocationMarker = async (map) => {
         marker.bindPopup('Вы находитесь где-то здесь');
     }
 }
+function downloadFile(data, fileName) {
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.geojson`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 document.addEventListener('DOMContentLoaded', async () => {
     createSpinner(document.getElementById('map-container'));
     const mapZIndex = document.getElementById('map').style.zIndex || 2;
@@ -150,6 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             L.geoJson(geojson, {
                 onEachFeature: onEachFeature
             }).addTo(map);
+            downloadFile(geojson);
             showCurrentLocationMarker(map);
             removeSpinner();
             lowerOrRiseMap(mapZIndex);
