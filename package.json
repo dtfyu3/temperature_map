@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "jquery-csv": "^1.0.40"
+    "jquery-csv": "^1.0.40",
+    "leaflet": "",
+    "leaflet-event-forwarder": "^0.0.3"
   }
 }
