@@ -171,7 +171,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             L.geoJson(geojson, {
                 onEachFeature: onEachFeature
             }).addTo(map);
-            downloadFile(geojson);
             showCurrentLocationMarker(map);
             removeSpinner();
             lowerOrRiseMap(mapZIndex);
