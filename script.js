@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     myEventForwarder.enable();
     const vectorTiles = L.vectorGrid.protobuf(
-        'http://localhost:3000/tiles/data/localized_with_temps/{z}/{x}/{y}.pbf', {
+        'https://tileservergl-proxy-git-master-dtfyu3s-projects.vercel.app/tiles/data/localized_with_temps/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         attribution: '© My Data',
