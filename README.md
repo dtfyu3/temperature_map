@@ -5,7 +5,7 @@ _data (.geojson) was taken from [here](https://globaldatalab.org/geos/table/surf
 _.mbtiles file was generated from large .geojson file with [this tool](https://github.com/mapbox/tippecanoe)_<br>
 _since GitHub gives only 1GB of LFS bandwith and .mbtiles file is over 100Mb, deployment might be not working, so see the gif demo_:
 <p align="center">
-<img width='100%'src="./gif.gif"/>
+
 </p>
 
 You need running tileserver-gl server with your .mbtiles file.
