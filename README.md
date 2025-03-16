@@ -1,6 +1,7 @@
 ### Interactive countries annual temperature map ###
 
-_.mbtiles file was generated from large .geojson file with [this tool](https://github.com/mapbox/tippecanoe)_
+_data (.geojson) was taken from [here](https://globaldatalab.org/geos/table/surfacetempyear/)_
+_.mbtiles file was generated from large .geojson file with [this tool](https://github.com/mapbox/tippecanoe)_<br>
 
 You need running tileserver-gl server with your .mbtiles file.
 To run tileserver-gl you need to install it via npm and create config.json file like this:
@@ -55,6 +56,9 @@ app.listen(3000, () => {
     console.log('Прокси-сервер запущен на http://localhost:3000');
 });
 ```
+(_You can visit [proxy-server repository](https://github.com/dtfyu3/tileservergl-proxy)_)
+
+
 And you simply replace link here from ```localhost:8080``` to ```localhost:port_that_your_proxy_is_on```:
 ```
  const vectorTiles = L.vectorGrid.protobuf(
