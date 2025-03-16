@@ -1,7 +1,7 @@
 ### Interactive countries annual temperature map ###
 (_If map is not loading for some time, just wait for few minutes, tileserver deployed on Render on free instance which will spin down with inactivity_)
 
-_data (.geojson) was taken from [here](https://globaldatalab.org/geos/table/surfacetempyear/)_
+_data (.geojson) was taken from [here](https://globaldatalab.org/geos/table/surfacetempyear/)_ <br>
 _.mbtiles file was generated from large .geojson file with [this tool](https://github.com/mapbox/tippecanoe)_<br>
 
 You need running tileserver-gl server with your .mbtiles file.
