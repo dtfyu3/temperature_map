@@ -4,6 +4,10 @@
 _data (.geojson) was taken from [here](https://globaldatalab.org/geos/table/surfacetempyear/)_ <br>
 _.mbtiles file was generated from large .geojson file with [this tool](https://github.com/mapbox/tippecanoe)_<br>
 _since GitHub gives only 1GB of LFS bandwith and .mbtiles file is over 100Mb, deployment might be not working, so see the gif demo_:
+<p align="center">
+<img src="./gif.gif"/>
+</p>
+
 You need running tileserver-gl server with your .mbtiles file.
 To run tileserver-gl you need to install it via npm and create config.json file like this:
 ```
