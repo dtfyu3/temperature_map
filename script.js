@@ -160,6 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             [90, 180]
         ],
         minZoom: mobileCheck() ? 1 : 3,
+        maxZoom: 10,
         maxBoundsViscosity: 1.0
     }).setView([20, 0], mobileCheck() ? 1 : 3);
     const container = map.createPane('stack-container');
