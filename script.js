@@ -1,26 +1,4 @@
-const getLocalizedNames = async () => {
-    const response = await fetch('data/country.json')
-    return response.json();
-}
-const localizeTiles = async () => {
-    let geojson;
-    try {
-        geojson = await fetch('data/localized_with_temps.geojson').then(response => response.json());
-    }
-    catch {
-        const localizedNames = await getLocalizedNames();
-        geojson = await getGeoJson();
-        geojson.features.forEach(feature => {
-            feature.properties.ADMIN = localizedNames[feature.properties.ISO_A2];
-        });
-    }
-    return await geojson
-}
-const getGeoJson = async () => {
-    const response = await fetch('data/countries.geojson');
-    return await response.json();
-}
-const geojson = localizeTiles();
+
 function createSpinner(container) {
     const spinner_container = document.createElement("div");
     spinner_container.id = 'loading-spinner';
@@ -38,30 +16,6 @@ const lowerOrRiseMap = (mapZIndex) => {
     const map = document.getElementById('map');
     mapZIndex ? map.style.zIndex = mapZIndex : map.style.zIndex = -1;
 }
-const temperaureData = {};
-const getCsv = async () => {
-    const response = await fetch('data/data.csv');
-    return await response.text();
-}
-const csv = getCsv().then(resp => {
-    const data = $.csv.toObjects(resp);
-
-    data.forEach(element => {
-        const temps = {};
-        const region = element.Region;
-        if (region === 'Total') {
-            for (const year in element) {
-                if (Number(year) && Number(element[year]))
-                    temps[year] = element[year];
-            }
-            const country = element.ISO_Code;
-            temperaureData[country] = temps;
-        }
-
-    });
-}
-
-);
 
 function getTemperatureColor(temp) {
     const tempColors = [
@@ -119,17 +73,6 @@ const showCurrentLocationMarker = async (map) => {
         const marker = L.marker([lat, lon]).addTo(map);
         marker.bindPopup('Вы находитесь где-то здесь');
     }
-}
-function downloadFile(data, fileName) {
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${fileName}.geojson`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
 }
 function countriesStyle(properties) {
     const fillColor = getTemperatureColor(properties.temp);
