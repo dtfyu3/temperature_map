@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     regionsLayer.on('click', function (e) {
         let type;
-        if (isRegion) type = 'region'
+        if (isRegion(e.layer)) type = 'region'
         else type = 'sovereign';
         bindPopup({e:e,type:type})
     });
