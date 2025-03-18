@@ -16,7 +16,6 @@ const lowerOrRiseMap = (mapZIndex) => {
     const map = document.getElementById('map');
     mapZIndex ? map.style.zIndex = mapZIndex : map.style.zIndex = -1;
 }
-
 function getTemperatureColor(temp) {
     const tempColors = [
         { temp: -20, color: "#264CFF" },
@@ -24,7 +23,7 @@ function getTemperatureColor(temp) {
         { temp: -10, color: "#72D8FF" },
         { temp: -5, color: "#AAF7FF" },
         { temp: 0, color: "#E0FFFF" },
-        { temp: 5, color: "#98e608" },
+        { temp: 5, color: "#FFFFBF" },
         { temp: 10, color: "#FFE099" },
         { temp: 15, color: "#FFAD72" },
         { temp: 20, color: "#F76D5E" },
@@ -106,50 +105,101 @@ document.addEventListener('DOMContentLoaded', async () => {
         maxZoom: 10,
         maxBoundsViscosity: 1.0
     }).setView([20, 0], mobileCheck() ? 1 : 3);
-    const container = map.createPane('stack-container');
+    map.createPane('regions');
+    // map.getPane('regions').style.zIndex = 1000; // actually works
+    map.createPane('countries');
+    console.log(map.getPanes());
+    const regionsLayer = L.vectorGrid.protobuf(
+        'https://tileserver-gl-latest-y8u4.onrender.com/data/regions/{z}/{x}/{y}.pbf', {
+        rendererFactory: L.canvas.tile,
+        interactive: true,
+        pane: 'regions',
+        attribution: '© My Data',
+        vectorTileLayerStyles: {
+            regions: properties => {
+                return {
+                    color: 'gray',
+                    stroke: true,
+                    weight: '0.5'
+                }
+            },
+            getFeatureId: function (f) {
+                return f.properties.id;
+            },
+        }
+    }
+    ).addTo(map);
+    const countriesLayer = L.vectorGrid.protobuf(
+        'https://tileserver-gl-latest-y8u4.onrender.com//data/countries/{z}/{x}/{y}.pbf', {
+        rendererFactory: L.canvas.tile,
+        interactive: true,
+        pane: 'countries',
+        attribution: '© My Data',
+        vectorTileLayerStyles: {
+            countries: properties => {
+                const styles = countriesStyle(properties);
+                return styles;
+            },
+            getFeatureId: function (f) {
+                return f.properties.id;
+            },
+        }
+    }
+    ).addTo(map);
+
     const myEventForwarder = new L.eventForwarder({
-        // ref to leaflet map
+        source: regionsLayer,
         map: map,
+        target: countriesLayer,
         // events to forward
         events: {
             click: true,
-            mousemove: true
+            mousemove: false
         },
-        // throttle options for mousemove events (same as underscore.js)
         throttleMs: 100,
         throttleOptions: {
             leading: true,
             trailing: false
         }
     });
-
     myEventForwarder.enable();
-    const vectorTiles = L.vectorGrid.protobuf(
-        'https://tileserver-gl-latest-y8u4.onrender.com/data/countries/{z}/{x}/{y}.pbf', {
-        rendererFactory: L.canvas.tile,
-        interactive: true,
-        attribution: '© My Data',
-        vectorTileLayerStyles: {
-            countries: properties => {
-                const styles = countriesStyle(properties);
-                return styles;
-            }
-        }
+    let properties = {
+
     }
-    ).addTo(map);
-    vectorTiles.on('click', function (e) {
-        if (e.layer && e.layer.properties) {
-            const countryName = e.layer.properties.ADMIN;
-            const temp = e.layer.properties.temp;
-            if (countryName && temp) {
-                L.popup()
-                    .setLatLng(e.latlng)
-                    .setContent(`<b>${countryName}</b><br>Температура: ${temp}°C`)
-                    .openOn(map);
-            }
+    const isRegion = (layer) => {
+        return ((layer.properties.geounit && layer.properties.geounit != layer.properties.name_ru) || layer.type)
+    }
+    const bindPopup = (args) => {
+        const {e, type} = args;
+        const temp = properties.temp || '';
+        const unitName = e.layer.properties.name_ru;
+        let content;
+        if(type === 'region'){
+            const countryName = e.layer.properties.geounit || properties.ru_name || properties.ADMIN;
+            content = `<b>${unitName}</b><br><b>${countryName}</b>`;
+           
         }
+        else if (type === 'sovereign'){
+            content = `<b>${unitName}</b>`;
+        }
+        if (temp) content += `:${temp}°C`
+        else content += `<br>Данных о температуре нет`;
+        L.popup().setLatLng(e.latlng).setContent(content).openOn(map);
+    }
+    regionsLayer.on('click', function (e) {
+        let type;
+        if (isRegion) type = 'region'
+        else type = 'sovereign';
+        bindPopup({e:e,type:type})
+    });
+    countriesLayer.on('click', function (e) {
+        const layerProperties = e.layer.properties;
+        properties = {};
+        Object.assign(properties, layerProperties);
+
     });
     showCurrentLocationMarker(map);
     removeSpinner();
     lowerOrRiseMap(mapZIndex);
 })
+
