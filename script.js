@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     ).addTo(map);
     const countriesLayer = L.vectorGrid.protobuf(
-        'https://tileserver-gl-latest-y8u4.onrender.com//data/countries/{z}/{x}/{y}.pbf', {
+        'https://tileserver-gl-latest-y8u4.onrender.com/data/countries/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'countries',
