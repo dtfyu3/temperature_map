@@ -73,7 +73,17 @@ const showCurrentLocationMarker = async (map) => {
         marker.bindPopup('Вы находитесь где-то здесь');
     }
 }
-
+// function downloadFile(data, fileName) {
+//     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = `${fileName}.geojson`;
+//     document.body.appendChild(a);
+//     a.click();
+//     document.body.removeChild(a);
+//     URL.revokeObjectURL(url);
+// }
 function countriesStyle(properties, styles = {}) {
     const { color = 'black', weight = 1, opacity = 1, fillOpacity = 1, fill = true } = styles;
     const fillColor = getTemperatureColor(properties.temp);
@@ -102,7 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let highlightedCountryId;
     let countryProperties;
     L.DomEvent.fakeStop = function () {
-        return true; ///magical thing
+        return true; /// magical thing
     }
 
     let properties = {};
@@ -127,7 +137,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         else content += `<br>Данных о температуре нет`;
         L.popup().setLatLng(e.latlng).setContent(content).openOn(map);
     }
-
 
     createSpinner(document.getElementById('map-container'));
     const mapZIndex = document.getElementById('map').style.zIndex || 2;
