@@ -73,24 +73,61 @@ const showCurrentLocationMarker = async (map) => {
         marker.bindPopup('Вы находитесь где-то здесь');
     }
 }
-function countriesStyle(properties) {
+
+function countriesStyle(properties, styles = {}) {
+    const { color = 'black', weight = 1, opacity = 1, fillOpacity = 1, fill = true } = styles;
     const fillColor = getTemperatureColor(properties.temp);
     return {
         fillColor: fillColor,
-        weight: 1,
-        opacity: 1,
-        color: 'gray',
-        fillOpacity: 0.7,
-        fill: true
+        weight: weight,
+        opacity: opacity,
+        color: color,
+        fillOpacity: fillOpacity,
+        fill: fill
     }
 }
 
-
-
-document.addEventListener('DOMContentLoaded', async () => {
-    L.DomEvent.fakeStop = function () {
-        return true;
+function regionsStyles() {
+    return {
+        color: 'gray',
+        stroke: true,
+        weight: 0.5
     }
+}
+function resetRegionStyle(vectorTileLayer, id) {
+    vectorTileLayer.setFeatureStyle(id, regionsStyles())
+}
+document.addEventListener('DOMContentLoaded', async () => {
+    let highlightedRegionId;
+    let highlightedCountryId;
+    let countryProperties;
+    L.DomEvent.fakeStop = function () {
+        return true; ///magical thing
+    }
+
+    let properties = {};
+    const isRegion = (layer) => {
+        return ((layer.geounit && layer.geounit != layer.name_ru) || layer.type)
+    }
+
+    const bindPopup = (args) => {
+        const { e, type } = args;
+        const temp = e.layer.properties.temp || '';
+        const unitName = properties.name_ru || properties.geounit;
+        let content;
+        if (type === 'region') {
+            const countryName = properties.geounit || e.layer.properties.ru_name || e.layer.properties.ADMIN;
+            content = `<b>${unitName}</b><br><b>${countryName}</b>`;
+
+        }
+        else if (type === 'sovereign') {
+            content = `<b>${unitName}</b>`;
+        }
+        if (temp) content += `:${temp}°C`
+        else content += `<br>Данных о температуре нет`;
+        L.popup().setLatLng(e.latlng).setContent(content).openOn(map);
+    }
+
 
     createSpinner(document.getElementById('map-container'));
     const mapZIndex = document.getElementById('map').style.zIndex || 2;
@@ -106,31 +143,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         maxBoundsViscosity: 1.0
     }).setView([20, 0], mobileCheck() ? 1 : 3);
     map.createPane('regions');
-    // map.getPane('regions').style.zIndex = 1000; // actually works
+    map.getPane('regions').style.zIndex = 450;
     map.createPane('countries');
-    console.log(map.getPanes());
     const regionsLayer = L.vectorGrid.protobuf(
-        'https://tileserver-gl-latest-y8u4.onrender.com/data/regions/{z}/{x}/{y}.pbf', {
+        'http://localhost:3000/tiles/data/regions/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'regions',
         attribution: '© My Data',
         vectorTileLayerStyles: {
             regions: properties => {
-                return {
-                    color: 'gray',
-                    stroke: true,
-                    weight: '0.5'
-                }
+                return regionsStyles();
             },
-            getFeatureId: function (f) {
-                return f.properties.id;
-            },
-        }
+        },
+        getFeatureId: function (f) {
+            return f.properties.name_ru;
+        },
     }
     ).addTo(map);
     const countriesLayer = L.vectorGrid.protobuf(
-        'https://tileserver-gl-latest-y8u4.onrender.com/data/countries/{z}/{x}/{y}.pbf', {
+        'http://localhost:3000/tiles/data/countries/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'countries',
@@ -140,13 +172,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const styles = countriesStyle(properties);
                 return styles;
             },
-            getFeatureId: function (f) {
-                return f.properties.id;
-            },
-        }
+        },
+        getFeatureId: function (f) {
+            return f.properties.ru_name;
+        },
     }
     ).addTo(map);
-
+    countriesLayer.on('tileload', function () {
+        showCurrentLocationMarker(map);
+        removeSpinner();
+        lowerOrRiseMap(mapZIndex);
+    })
     const myEventForwarder = new L.eventForwarder({
         source: regionsLayer,
         map: map,
@@ -163,43 +199,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     myEventForwarder.enable();
-    let properties = {
 
-    }
-    const isRegion = (layer) => {
-        return ((layer.properties.geounit && layer.properties.geounit != layer.properties.name_ru) || layer.type)
-    }
-    const bindPopup = (args) => {
-        const {e, type} = args;
-        const temp = properties.temp || '';
-        const unitName = e.layer.properties.name_ru;
-        let content;
-        if(type === 'region'){
-            const countryName = e.layer.properties.geounit || properties.ru_name || properties.ADMIN;
-            content = `<b>${unitName}</b><br><b>${countryName}</b>`;
-           
-        }
-        else if (type === 'sovereign'){
-            content = `<b>${unitName}</b>`;
-        }
-        if (temp) content += `:${temp}°C`
-        else content += `<br>Данных о температуре нет`;
-        L.popup().setLatLng(e.latlng).setContent(content).openOn(map);
-    }
     regionsLayer.on('click', function (e) {
-        let type;
-        if (isRegion(e.layer)) type = 'region'
-        else type = 'sovereign';
-        bindPopup({e:e,type:type})
-    });
-    countriesLayer.on('click', function (e) {
         const layerProperties = e.layer.properties;
         properties = {};
         Object.assign(properties, layerProperties);
+        const id = e.target.options.getFeatureId(e.layer);
+        if (highlightedRegionId) {
+            const style = regionsStyles();
+            resetRegionStyle(regionsLayer, highlightedRegionId);
+            highlightedRegionId = null;
+        }
+
+        highlightedRegionId = id;
+        regionsLayer.setFeatureStyle(id, {
+            color: 'red'
+        })
+
 
     });
-    showCurrentLocationMarker(map);
-    removeSpinner();
-    lowerOrRiseMap(mapZIndex);
+    countriesLayer.on('click', function (e) {
+        if (highlightedCountryId) {
+            countriesLayer.setFeatureStyle(highlightedCountryId, countriesStyle(countryProperties))
+            highlightedCountryId = null;
+        }
+        countryProperties = Object.assign(e.layer.properties);
+        highlightedCountryId = e.target.options.getFeatureId(e.layer);
+        const highlightedCountryStyles = { color: 'blue', weight: 2 }; 
+        countriesLayer.setFeatureStyle(highlightedCountryId, countriesStyle(e.layer.properties, highlightedCountryStyles))
+        let areaType;
+        if (isRegion(properties)) areaType = 'region'
+        else areaType = 'sovereign';
+        bindPopup({ e: e, type: areaType })
+
+
+    });
 })
 
