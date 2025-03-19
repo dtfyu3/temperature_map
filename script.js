@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.getPane('regions').style.zIndex = 450;
     map.createPane('countries');
     const regionsLayer = L.vectorGrid.protobuf(
-        'http://localhost:3000/tiles/data/regions/{z}/{x}/{y}.pbf', {
+        'https://tileserver-gl-latest-y8u4.onrender.com/regions/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'regions',
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     ).addTo(map);
     const countriesLayer = L.vectorGrid.protobuf(
-        'http://localhost:3000/tiles/data/countries/{z}/{x}/{y}.pbf', {
+        'https://tileserver-gl-latest-y8u4.onrender.com/countries/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'countries',
