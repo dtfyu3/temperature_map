@@ -137,7 +137,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         else content += `<br>Данных о температуре нет`;
         L.popup().setLatLng(e.latlng).setContent(content).openOn(map);
     }
-
+    function isHigherThanFullHD(){
+        return window.screen.width > 1920 || window.screen.height > 1080;
+    }
+    
     createSpinner(document.getElementById('map-container'));
     const mapZIndex = document.getElementById('map').style.zIndex || 2;
     lowerOrRiseMap();
@@ -147,10 +150,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             [-90, -180],
             [90, 180]
         ],
-        minZoom: mobileCheck() ? 1 : 3,
+        minZoom: mobileCheck() ? 1 : isHigherThanFullHD() ? 4 : 3,
         maxZoom: 10,
         maxBoundsViscosity: 1.0
-    }).setView([20, 0], mobileCheck() ? 1 : 3);
+    }).setView([20, 0], mobileCheck() ? 1 : isHigherThanFullHD() ? 4 : 3);
     map.createPane('regions');
     map.getPane('regions').style.zIndex = 450;
     map.createPane('countries');
