@@ -7,8 +7,8 @@ function createSpinner(container) {
     const span = document.createElement("span");
     span.classList.add('sr-only');
     span.textContent = 'Loading...';
-    spinner_container.appendChild(span);
     spinner_container.appendChild(spinner);
+    spinner_container.appendChild(span);
     container.prepend(spinner_container);
     spinner_container.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
 }
