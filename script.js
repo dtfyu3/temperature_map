@@ -4,6 +4,10 @@ function createSpinner(container) {
     spinner_container.id = 'loading-spinner';
     const spinner = document.createElement("div");
     spinner.classList.add('spinner');
+    const span = document.createElement("span");
+    span.classList.add('sr-only');
+    span.textContent = 'Loading...';
+    spinner_container.appendChild(span);
     spinner_container.appendChild(spinner);
     container.prepend(spinner_container);
     spinner_container.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
@@ -73,17 +77,7 @@ const showCurrentLocationMarker = async (map) => {
         marker.bindPopup('Вы находитесь где-то здесь');
     }
 }
-// function downloadFile(data, fileName) {
-//     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-//     const url = URL.createObjectURL(blob);
-//     const a = document.createElement('a');
-//     a.href = url;
-//     a.download = `${fileName}.geojson`;
-//     document.body.appendChild(a);
-//     a.click();
-//     document.body.removeChild(a);
-//     URL.revokeObjectURL(url);
-// }
+
 function countriesStyle(properties, styles = {}) {
     const { color = 'black', weight = 1, opacity = 1, fillOpacity = 1, fill = true } = styles;
     const fillColor = getTemperatureColor(properties.temp);
@@ -111,6 +105,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     let highlightedRegionId;
     let highlightedCountryId;
     let countryProperties;
+    let totalTiles = 0;
+    let loadedTiles = 0;
+    
     L.DomEvent.fakeStop = function () {
         return true; /// magical thing
     }
@@ -190,11 +187,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
     }
     ).addTo(map);
-    countriesLayer.on('tileload', function () {
+    countriesLayer.on('load', function () {
         showCurrentLocationMarker(map);
         removeSpinner();
         lowerOrRiseMap(mapZIndex);
-    })
+    });
+     countriesLayer.on('tileload',function(){
+        loadedTiles++;
+        updateLoaderProgress();
+    });
+    function updateLoaderProgress() {
+        if (totalTiles === 0) {
+            totalTiles = Object.keys(countriesLayer._tiles).length;
+        }
+        const progress = Math.round((loadedTiles / totalTiles) * 100);
+        document.querySelector('.sr-only').textContent = `Загрузка карты... ${progress}%`;
+    }
     const myEventForwarder = new L.eventForwarder({
         source: regionsLayer,
         map: map,
