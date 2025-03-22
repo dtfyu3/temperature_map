@@ -213,6 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.createPane('regions');
     map.getPane('regions').style.zIndex = 450;
     map.createPane('countries');
+    map.doubleClickZoom.disable();
     const regionsLayer = L.vectorGrid.protobuf(
         'https://tileserver-gl-latest-y8u4.onrender.com/data/regions/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
