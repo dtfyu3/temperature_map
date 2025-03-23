@@ -77,22 +77,10 @@ const showCurrentLocationMarker = async (map) => {
         marker.bindPopup('Вы находитесь где-то здесь');
     }
 }
-// function downloadFile(data, fileName) {
-//     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-//     const url = URL.createObjectURL(blob);
-//     const a = document.createElement('a');
-//     a.href = url;
-//     a.download = `${fileName}.geojson`;
-//     document.body.appendChild(a);
-//     a.click();
-//     document.body.removeChild(a);
-//     URL.revokeObjectURL(url);
-// }
 function countriesStyle(properties, styles = {}) {
-    const { color = 'black', weight = 1, opacity = 1, fillOpacity = 1, fill = true } = styles;
-    const fillColor = getTemperatureColor(properties.temp);
+    const { color = 'black', weight = 1, opacity = 1, fillOpacity = 1, fill = false, stroke = false } = styles;
     return {
-        fillColor: fillColor,
+        stroke: stroke,
         weight: weight,
         opacity: opacity,
         color: color,
@@ -116,6 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let highlightedCountryId;
     let countryProperties;
     let tilesLoaded = false;
+    let minTLayer;
     const toClosePopupOn = {};
     const activeLayers = {};
     L.DomEvent.fakeStop = function () {
@@ -126,8 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isRegion = (layer) => {
         return ((layer.geounit && layer.geounit != layer.name_ru) || layer.type)
     }
-    function countriesAndRegionsPopup(args) {
-        const { e, type } = args;
+    function countriesAndRegionsPopup(e, type) {
         const temp = e.layer.properties.temp || '';
         const unitName = properties.name_ru || properties.geounit;
         const id = properties.id;
@@ -144,12 +132,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         else if (type === 'sovereign') {
             content = `<b>${unitName}</b>`;
         }
-        if (temp) content += `:${temp}°C`
-        else content += `<br>Данных о температуре нет`;
+        if (temp) content += `<br>Среднегодовая температура: ${temp}°C<br>`
+        else content += `<br>Данных о средней температуре нет`;
+        if (activeLayers['tMin']) {
+            const minTemp = properties.DN;
+            minTemp ? content += `Минимальная температура: ${minTemp}°C` : content += `Данных о минимальной температуре нет`;
+        }
         return content;
     }
-    function regionsPopup(args) {
-        const { e, type } = args;
+    function regionsPopup(e, type) {
+        const id = properties.id;
+        if (toClosePopupOn[id]) {
+            delete (toClosePopupOn[id]);
+            return undefined;
+        }
         const unitName = properties.name_ru || properties.geounit;
         if (type === 'region') {
             const countryName = properties.geounit || e.layer.properties.ru_name;
@@ -159,31 +155,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         else if (type === 'sovereign') {
             content = `<b>${unitName}</b>`;
         }
+        if (activeLayers['tMin']) {
+            e.layer.properties.DN ? content += `<br>Минимальная температура: ${e.layer.properties.DN}°C</br>` : content += `<br>Данных о минимальной температуре нет</br>`;
+        }
         return content;
     }
-    function countriesPopup(args) {
-        const { e, type } = args;
+    function countriesPopup(e, type) {
         let content;
         const countryName = e.layer.properties.ru_name || e.layer.properties.ADMIN;
         const temp = e.layer.properties.temp || '';
         content = `<b>${countryName}</b>`;
-        temp ? content += `:${temp}°C` : content += `<br>Данных о температуре нет`;
+        temp ? content += `<br>Среднегодовая температура: ${temp}°C</br>` : content += `<br>Данных о среднегодовой температуре нет</br>`;
+        if (activeLayers['tMin']) {
+            const minTemp = properties.DN;
+            minTemp ? content += `Минимальная температура: ${minTemp}°C` : content += `Данных о минимальной температуре нет`;
+        }
         return content;
     }
     const bindPopup = (args) => {
         const { e, type } = args;
         let content;
-        if (activeLayers['countries'] && activeLayers['regions']) content = countriesAndRegionsPopup(args);
-        else if (activeLayers['countries'] && !activeLayers['regions']) content = countriesPopup(args);
-        else if (activeLayers['regions'] && !activeLayers['countries']) content = regionsPopup(args);
-        content ? L.popup().setLatLng(e.latlng).setContent(content).openOn(map) : 'when highlighted regions was clicked once again';
+        if (activeLayers['countries'] && activeLayers['regions']) content = countriesAndRegionsPopup(e, type);
+        else if (activeLayers['countries'] && !activeLayers['regions']) content = countriesPopup(e, type);
+        else if (activeLayers['regions'] && !activeLayers['countries']) content = regionsPopup(e, type);
+        let popup;
+        if (content) {
+            popup = L.popup().setLatLng(e.latlng).setContent(content).openOn(map);
+            popup.getElement().style.zIndex = 1000;
+        }
     }
     function isHigherThanFullHD() {
         return window.screen.width > 1920 || window.screen.height > 1080;
     }
-    function updateActiveLayers(layer) {
+    function updateActiveLayers(layer, flag = null) {
         map.closePopup();
         const layerName = typeof (layer) === 'object' ? layer[0] : layer;
+        if (flag !== null) {
+            activeLayers[layerName] = flag;
+            return;
+        }
         if (activeLayers[layerName]) activeLayers[layerName] = false;
         else activeLayers[layerName] = true;
     }
@@ -195,6 +205,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             return null;
         }
     }
+    function initMinTempLayer(url = 't_min_2021_01') {
+        minTLayer = L.vectorGrid.protobuf(
+            `http://localhost:3000/tiles/data/${url}/{z}/{x}/{y}.pbf`, {
+            rendererFactory: L.canvas.tile,
+            interactive: true,
+            pane: 't_min',
+            attribution: '© My Data',
+            vectorTileLayerStyles: {
+                t_min_2021_01: properties => {
+                    return { stroke: false, weight: 0, fill: true, fillColor: getTemperatureColor(properties.DN), fillOpacity: 1 }
+                },
+                t_min_2021_06: properties => {
+                    return { stroke: false, fill: true, fillColor: getTemperatureColor(properties.DN), fillOpacity: 1 }
+                },
+                t_min_2021_12: properties => {
+                    return { stroke: false, fill: true, fillColor: getTemperatureColor(properties.DN), fillOpacity: 1 }
+                }
+            },
+        });
+        updateActiveLayers('tMin', false);
+    }
     createSpinner(document.getElementById('map-container'));
     const mapZIndex = document.getElementById('map').style.zIndex || 2;
     lowerOrRiseMap();
@@ -204,18 +235,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             [-90, -180],
             [90, 180]
         ],
-        // zoomSnap: 0.5,
-        // zoomDelta: 0.5,
         minZoom: mobileCheck() ? 1 : isHigherThanFullHD() ? 4 : 3,
         maxZoom: 10,
         maxBoundsViscosity: 1.0
     }).setView([20, 0], mobileCheck() ? 1 : isHigherThanFullHD() ? 4 : 3);
     map.createPane('regions');
     map.getPane('regions').style.zIndex = 450;
+    map.createPane('t_min');
+    map.getPane('t_min').style.zIndex = 449;
     map.createPane('countries');
+    const paneCol = document.getElementsByClassName('leaflet-popup-pane')
+    let paneToChange = paneCol[0];
+    paneToChange.style.zIndex = 1000;
     map.doubleClickZoom.disable();
     const regionsLayer = L.vectorGrid.protobuf(
-        'https://tileserver-gl-latest-y8u4.onrender.com/data/regions/{z}/{x}/{y}.pbf', {
+        'https://tileservergl-proxy.vercel.app/tiles/data/regions/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'regions',
@@ -232,7 +266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ).addTo(map);
 
     const countriesLayer = L.vectorGrid.protobuf(
-        'https://tileserver-gl-latest-y8u4.onrender.com/data/countries/{z}/{x}/{y}.pbf', {
+        'https://tileservergl-proxy.vercel.app/tiles/data/countries/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'countries',
@@ -248,10 +282,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
     }
     ).addTo(map);
-
+    initMinTempLayer();
     updateActiveLayers('regions');
     updateActiveLayers('countries');
-
     countriesLayer.on('add', function () {
         updateActiveLayers(Object.keys(this._dataLayerNames));
     });
@@ -263,6 +296,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     regionsLayer.on('remove', function () {
         updateActiveLayers(Object.keys(this._dataLayerNames));
+    });
+    minTLayer.on('add', function (e) {
+        updateActiveLayers('tMin', true);
+        const monthSwitcher = L.DomUtil.create('select', 'month-switcher');
+        monthSwitcher.style.margin = '5px';
+        monthSwitcher.style.padding = '5px';
+        monthSwitcher.innerHTML = `
+    <option value="1">January</option>
+    <option value="6">June</option>
+    <option value="12">December</option>
+`;
+        const container = layerControl.getContainer();
+        container.appendChild(monthSwitcher);
+
+        L.DomEvent.on(monthSwitcher, 'change', function (e) {
+            updateMinTLayer(e.target.value);
+        });
+    });
+    minTLayer.on('remove', function () {
+        updateActiveLayers('tMin', false);
+        const container = layerControl.getContainer();
+        const monthSwitcher = container.querySelector('.month-switcher');
+        if (monthSwitcher) {
+            container.removeChild(monthSwitcher);
+        }
+
     });
     let totalTiles = 0;
     let loadedTiles = 0;
@@ -284,7 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.sr-only').textContent = `Загрузка карты... ${progress}%`;
     }
     const myEventForwarder = new L.eventForwarder({
-        source: regionsLayer,
+        source: [regionsLayer, minTLayer],
         map: map,
         target: countriesLayer,
         // events to forward
@@ -301,7 +360,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     myEventForwarder.enable();
 
     regionsLayer.on('click', function (e) {
-        console.log(e);
         const layerProperties = e.layer.properties;
         properties = {};
         Object.assign(properties, layerProperties);
@@ -321,26 +379,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         regionsLayer.setFeatureStyle(id, {
             color: 'red'
         });
-        if (!activeLayers['countries']) {
+        if (!activeLayers['countries'] && !activeLayers['tMin']) {
             bindPopup({ e: e, type: areaType });
         }
-
+        if (activeLayers['tMin'] && !activeLayers['countries']) properties.areaType = areaType;
     });
     countriesLayer.on('click', function (e) {
         const id = e.target.options.getFeatureId(e.layer);
-        if (highlightedCountryId) {
+        if (!activeLayers['tMin']) {
+            if (highlightedCountryId) {
+                if (highlightedCountryId !== id) {
+                    countriesLayer.setFeatureStyle(highlightedCountryId, countriesStyle(countryProperties))
+                    highlightedCountryId = null;
+                }
+            }
+            countryProperties = Object.assign({}, e.layer.properties);
             if (highlightedCountryId !== id) {
-                countriesLayer.setFeatureStyle(highlightedCountryId, countriesStyle(countryProperties))
-                highlightedCountryId = null;
+                highlightedCountryId = e.target.options.getFeatureId(e.layer);
+                const highlightedCountryStyles = { color: 'blue', weight: 2 };
+                countriesLayer.setFeatureStyle(highlightedCountryId, countriesStyle(e.layer.properties, highlightedCountryStyles))
             }
         }
-        countryProperties = Object.assign(e.layer.properties);
-        if(highlightedCountryId !== id){
-            highlightedCountryId = e.target.options.getFeatureId(e.layer);
-            const highlightedCountryStyles = { color: 'blue', weight: 2 };
-            countriesLayer.setFeatureStyle(highlightedCountryId, countriesStyle(e.layer.properties, highlightedCountryStyles))
-        }
-       
+
+
         let areaType;
         if (activeLayers['regions']) {
             if (isRegion(properties)) areaType = 'region'
@@ -348,9 +409,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         bindPopup({ e: e, type: areaType })
     });
+    minTLayer.on('click', function (e) {
+        properties.DN = e.layer.properties.DN;
+        if (!activeLayers['countries']) bindPopup({ e: e, type: properties.areaType });
+    })
     const layerControl = L.control.layers({}, {
-        'Регионы': regionsLayer,
-        'Страны': countriesLayer
+        'Regions': regionsLayer,
+        'Countries': countriesLayer,
+        'Min temperature': minTLayer
     }).addTo(map);
+
+
+    function updateMinTLayer(month) {
+        const url = `t_min_2021_${month.padStart(2, '0')}`;
+        minTLayer.setUrl(`https://tileservergl-proxy.vercel.app/tiles/data/${url}/{z}/{x}/{y}.pbf`);
+    }
+
+
 })
 
