@@ -3,6 +3,7 @@
 
 _countries data (.geojson) was taken from [here](https://globaldatalab.org/geos/table/surfacetempyear/)_ <br>
 _states, provinces etc. was taken from [here](https://www.naturalearthdata.com/downloads/10m-cultural-vectors/)_ <br>
+_min temperature was taken from [here](https://www.worldclim.org/data/monthlywth.html) and then converted into geojson using gdal's gdal_polygonize_ <br>
 _.mbtiles file was generated from large .geojson file with [this tool](https://github.com/mapbox/tippecanoe)_<br>
 
 _(gif demo)_
