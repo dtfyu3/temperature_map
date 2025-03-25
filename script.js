@@ -22,6 +22,8 @@ const lowerOrRiseMap = (mapZIndex) => {
 }
 function getTemperatureColor(temp) {
     const tempColors = [
+        { temp: -50, color:"#4526f5"},
+        { temp: -40, color:"#2a1de7"},
         { temp: -20, color: "#264CFF" },
         { temp: -15, color: "#3FA0FF" },
         { temp: -10, color: "#72D8FF" },
@@ -133,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             content = `<b>${unitName}</b>`;
         }
         if (temp) content += `<br>Среднегодовая температура: ${temp}°C<br>`
-        else content += `<br>Данных о средней температуре нет`;
+        else content += `<br>Данных о средней температуре нет</br>`;
         if (activeLayers['tMin']) {
             const minTemp = properties.DN;
             minTemp ? content += `Минимальная температура: ${minTemp}°C` : content += `Данных о минимальной температуре нет`;
