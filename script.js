@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     function initMinTempLayer(url = 't_min_2021_01') {
         minTLayer = L.vectorGrid.protobuf(
-            `http://localhost:3000/tiles/data/${url}/{z}/{x}/{y}.pbf`, {
+            `https://tileservergl-proxy.vercel.app/tiles/data/${url}/{z}/{x}/{y}.pbf`, {
             rendererFactory: L.canvas.tile,
             interactive: true,
             pane: 't_min',
