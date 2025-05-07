@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     paneToChange.style.zIndex = 1000;
     map.doubleClickZoom.disable();
     const regionsLayer = L.vectorGrid.protobuf(
-        'https://tileservergl-proxy.vercel.app/tiles/data/regions/{z}/{x}/{y}.pbf', {
+        'https://tileservergl-proxy.vercel.app:3000/tiles/data/regions/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'regions',
@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ).addTo(map);
 
     const countriesLayer = L.vectorGrid.protobuf(
-        'https://tileservergl-proxy.vercel.app/tiles/data/countries/{z}/{x}/{y}.pbf', {
+        'https://tileservergl-proxy.vercel.app:3000/tiles/data/countries/{z}/{x}/{y}.pbf', {
         rendererFactory: L.canvas.tile,
         interactive: true,
         pane: 'countries',
